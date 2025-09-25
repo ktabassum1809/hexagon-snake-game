@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Game - Hexagon Grid</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Snake Game</h1>
+            <div id="score">Score: 0 | Level: 1</div>
+        </header>
+        
+        <main>
+            <div id="game-board-container">
+                <div id="game-board"></div>
+                <div id="start-screen" class="overlay">
+                    <div class="overlay-content">
+                        <h2>Snake Game</h2>
+                        <p>Use W, A, D, X keys to control the snake</p>
+                        <button id="start-btn" class="game-btn">Start Game</button>
+                    </div>
+                </div>
+                <div id="game-over-screen" class="overlay hidden">
+                    <div class="overlay-content">
+                        <h2>Game Over</h2>
+                        <p>Your score: <span id="final-score">0</span></p>
+                        <button id="restart-btn" class="game-btn">Play Again</button>
+                    </div>
+                </div>
+                <div id="pause-screen" class="overlay hidden">
+                    <div class="overlay-content">
+                        <h2>Game Paused</h2>
+                        <button id="resume-btn" class="game-btn">Resume</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <button id="pause-btn" class="control-btn" disabled>Pause</button>
+                <button id="reset-btn" class="control-btn" disabled>Reset</button>
+                <div class="difficulty">
+                    <label for="difficulty-select">Difficulty:</label>
+                    <select id="difficulty-select">
+                        <option value="easy">Easy</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="hard">Hard</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div id="mobile-controls" class="hidden">
+                <div class="mobile-control-row">
+                    <button id="up-btn" class="mobile-btn">↑</button>
+                </div>
+                <div class="mobile-control-row">
+                    <button id="left-btn" class="mobile-btn">←</button>
+                    <button id="right-btn" class="mobile-btn">→</button>
+                </div>
+                <div class="mobile-control-row">
+                    <button id="down-btn" class="mobile-btn">↓</button>
+                </div>
+            </div>
+        </main>
+        
+        <div id="game-info">
+            <h2>Game Rules & Controls</h2>
+            <div class="info-content">
+               <table>
+    <tr>
+        <th>Key</th>
+        <th>Direction</th>
+    </tr>
+    <tr>
+        <td>W</td>
+        <td>Up</td>
+    </tr>
+    <tr>
+        <td>A</td>
+        <td>Left</td>
+    </tr>
+    <tr>
+        <td>D</td>
+        <td>Right</td>
+    </tr>
+    <tr>
+        <td>X</td>
+        <td>Down</td>
+    </tr>
+</table>
+
+                
+                <div class="rules">
+                    <p><strong>Objective:</strong> Eat the food to grow the snake and earn points.</p>
+                    <p><strong>Game Over:</strong> Snake hits the wall or itself.</p>
+                    <p><strong>Levels:</strong> Speed increases as your score grows.</p>
+                    
+                    <div class="mobile-controls-info hidden">
+                        <h3>Mobile Controls</h3>
+                        <p>Use the directional buttons below the game board to control the snake on mobile devices.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
