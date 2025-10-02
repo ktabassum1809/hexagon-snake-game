@@ -91,6 +91,7 @@ function createBoard(): void {
         }
     }
 }
+
 // Load high score on game start
 function loadHighScore(): void {
     const saved = localStorage.getItem('snakeHighScore');
@@ -280,12 +281,12 @@ function checkMobileDevice(): void {
     }
 }
 
-// Draw snake and food
+// Draw snake and food - FIXED
 function draw(): void {
-    // Clear the board
+    // Clear the board - FIXED: Remove ALL food classes
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
-            cells[r][c].classList.remove("snake", "snake-head", "food");
+            cells[r][c].classList.remove("snake", "snake-head", "food", "food-golden", "food-poison", "food-power");
         }
     }
     
@@ -309,7 +310,7 @@ function draw(): void {
     }
 }
 
-// Place food randomly
+// Place food randomly - FIXED: No timer for golden food
 function placeFood(): void {
     let r: number, c: number;
     do {
@@ -319,16 +320,13 @@ function placeFood(): void {
 
     food = {row: r, col: c};
 
-    // Randomize food type
+    // Randomize food type - NO TIMER for testing
     const rand = Math.random();
     if (rand < 0.7) {
         foodType = "normal";
     } else if (rand < 0.85) {
         foodType = "golden";
-        if (foodTimer) clearTimeout(foodTimer);
-        foodTimer = setTimeout(() => {
-            if (foodType === "golden") placeFood(); // remove if not eaten
-        }, 5000) as unknown as number;
+        // No timer - golden food stays until eaten
     } else if (rand < 0.95) {
         foodType = "poison";
     } else {
@@ -367,12 +365,17 @@ function restartInterval(): void {
     interval = setInterval(moveSnake, speed) as unknown as number;
 }
 
-// Move snake
+// Move snake - COMPLETELY FIXED
 function moveSnake(): void {
-     const now = Date.now();
+    const now = Date.now();
     if (now - lastMoveTime < minMoveInterval) return;
     lastMoveTime = now;
-    const head: Position = {row: snake[0].row + direction.row, col: snake[0].col + direction.col};
+    
+    // Calculate new head position
+    const head: Position = {
+        row: snake[0].row + direction.row, 
+        col: snake[0].col + direction.col
+    };
 
     // Wrap around edges
     if (head.row < 0) head.row = rows - 1;
@@ -380,60 +383,65 @@ function moveSnake(): void {
     if (head.col < 0) head.col = cols - 1;
     if (head.col >= cols) head.col = 0;
 
-    // Check for collision with self
-    if (snake.some(seg => seg.row === head.row && seg.col === head.col)) {
+    // Check if eating food FIRST (before collision check)
+    if (head.row === food.row && head.col === food.col) {
+        console.log("🎯 FOOD EATEN! Type:", foodType, "Score:", score);
+        
+        // Play sound based on food type
+        if (foodType === "normal" || foodType === "golden") {
+            playSound("eat-sound");
+        } else if (foodType === "power") {
+            playSound("power-up-sound");
+        }
+        
+        // Handle different food types
+        if (foodType === "normal") {
+            score += 10;
+            growSnake(1 + Math.floor(Math.random() * 3));
+        } else if (foodType === "golden") {
+            score += 50;
+            growSnake(3);
+        } else if (foodType === "poison") {
+            score = Math.max(0, score - 20);
+            snake.splice(-2, 2);
+            if (snake.length < 1) {
+                gameOver();
+                return;
+            }
+        } else if (foodType === "power") {
+            const powers: PowerType[] = ["invincible", "slow"];
+            activePower = powers[Math.floor(Math.random() * powers.length)];
+            applyPowerUp(activePower!);
+        }
+
+        updateScore();
+        placeFood();
+        updateSpeed();
+
+        // Visual effect
+        cells[food.row][food.col].classList.add("food-eaten");
+        setTimeout(() => {
+            cells[food.row][food.col].classList.remove("food-eaten");
+        }, 200);
+        
+        // Add head without popping tail (snake grows)
+        snake.unshift(head);
+    } else {
+        // Normal movement - add head and pop tail
+        snake.unshift(head);
+        snake.pop();
+    }
+
+    // Check for collision with self AFTER food logic
+    if (snake.slice(1).some(seg => seg.row === head.row && seg.col === head.col)) {
         if (activePower !== "invincible") {
             gameOver();
             return;
         }
     }
 
-    snake.unshift(head);
-
-  // Eat food
-if (head.row === food.row && head.col === food.col) {
-     if (foodType === "normal" || foodType === "golden") {
-        playSound("eat-sound");
-    } else if (foodType === "power") {
-        playSound("power-up-sound");
-    }
-    if (foodType === "normal") {
-        score += 10;
-        growSnake(1 + Math.floor(Math.random() * 3)); // grow 1–3
-    } else if (foodType === "golden") {
-        score += 50;
-        growSnake(3); // golden grows more
-    } else if (foodType === "poison") {
-        score = Math.max(0, score - 20);
-        snake.splice(-2, 2); // remove last 2 segments
-        if (snake.length < 1) {
-            gameOver();
-            return;
-        }
-    } else if (foodType === "power") {
-        const powers: PowerType[] = ["invincible", "slow"];
-        activePower = powers[Math.floor(Math.random() * powers.length)];
-        applyPowerUp(activePower!);
-    }
-
-    // Update score immediately after changing it
     updateScore();
-    
-    placeFood();
-    updateSpeed();
-
-    // Visual effect
-    cells[food.row][food.col].classList.add("food-eaten");
-    setTimeout(() => {
-        cells[food.row][food.col].classList.remove("food-eaten");
-    }, 200);
-} else {
-    snake.pop();
-}
-
-// Keep this updateScore call for cases where score might change elsewhere
-updateScore();
-draw();
+    draw();
 }
 
 // Game over
@@ -466,7 +474,7 @@ function gameOver(): void {
         // Disable control buttons
         pauseBtn.disabled = true;
         resetBtn.disabled = false;
-    }, 500); // 500ms delay to show the animation
+    }, 500);
 }
 
 // Grow snake by N segments
@@ -509,6 +517,7 @@ function applyPowerUp(type: Exclude<PowerType, null>): void {
         }, powerUpDuration) as unknown as number;
     }
 }
+
 function updatePowerUpDisplay(): void {
     if (!activePower) return;
     
@@ -522,6 +531,7 @@ function updatePowerUpDisplay(): void {
         requestAnimationFrame(updatePowerUpDisplay);
     }
 }
+
 // Sound functions
 function playSound(soundId: string): void {
     const sound = document.getElementById(soundId) as HTMLAudioElement;

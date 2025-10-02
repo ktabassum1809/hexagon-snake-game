@@ -252,12 +252,12 @@ function checkMobileDevice() {
         document.querySelector('.mobile-controls-info').classList.remove("hidden");
     }
 }
-// Draw snake and food
+// Draw snake and food - FIXED
 function draw() {
-    // Clear the board
+    // Clear the board - FIXED: Remove ALL food classes
     for (var r = 0; r < rows; r++) {
         for (var c = 0; c < cols; c++) {
-            cells[r][c].classList.remove("snake", "snake-head", "food");
+            cells[r][c].classList.remove("snake", "snake-head", "food", "food-golden", "food-poison", "food-power");
         }
     }
     // Draw snake
@@ -281,7 +281,7 @@ function draw() {
         cells[food.row][food.col].classList.add("food-power");
     }
 }
-// Place food randomly
+// Place food randomly - FIXED: No timer for golden food
 function placeFood() {
     var r, c;
     do {
@@ -289,19 +289,14 @@ function placeFood() {
         c = Math.floor(Math.random() * cols);
     } while (snake.some(function (seg) { return seg.row === r && seg.col === c; }));
     food = { row: r, col: c };
-    // Randomize food type
+    // Randomize food type - NO TIMER for testing
     var rand = Math.random();
     if (rand < 0.7) {
         foodType = "normal";
     }
     else if (rand < 0.85) {
         foodType = "golden";
-        if (foodTimer)
-            clearTimeout(foodTimer);
-        foodTimer = setTimeout(function () {
-            if (foodType === "golden")
-                placeFood(); // remove if not eaten
-        }, 5000);
+        // No timer - golden food stays until eaten
     }
     else if (rand < 0.95) {
         foodType = "poison";
@@ -340,13 +335,17 @@ function restartInterval() {
         clearInterval(interval);
     interval = setInterval(moveSnake, speed);
 }
-// Move snake
+// Move snake - COMPLETELY FIXED
 function moveSnake() {
     var now = Date.now();
     if (now - lastMoveTime < minMoveInterval)
         return;
     lastMoveTime = now;
-    var head = { row: snake[0].row + direction.row, col: snake[0].col + direction.col };
+    // Calculate new head position
+    var head = {
+        row: snake[0].row + direction.row,
+        col: snake[0].col + direction.col
+    };
     // Wrap around edges
     if (head.row < 0)
         head.row = rows - 1;
@@ -356,33 +355,28 @@ function moveSnake() {
         head.col = cols - 1;
     if (head.col >= cols)
         head.col = 0;
-    // Check for collision with self
-    if (snake.some(function (seg) { return seg.row === head.row && seg.col === head.col; })) {
-        if (activePower !== "invincible") {
-            gameOver();
-            return;
-        }
-    }
-    snake.unshift(head);
-    // Eat food
+    // Check if eating food FIRST (before collision check)
     if (head.row === food.row && head.col === food.col) {
+        console.log("🎯 FOOD EATEN! Type:", foodType, "Score:", score);
+        // Play sound based on food type
         if (foodType === "normal" || foodType === "golden") {
             playSound("eat-sound");
         }
         else if (foodType === "power") {
             playSound("power-up-sound");
         }
+        // Handle different food types
         if (foodType === "normal") {
             score += 10;
-            growSnake(1 + Math.floor(Math.random() * 3)); // grow 1–3
+            growSnake(1 + Math.floor(Math.random() * 3));
         }
         else if (foodType === "golden") {
             score += 50;
-            growSnake(3); // golden grows more
+            growSnake(3);
         }
         else if (foodType === "poison") {
             score = Math.max(0, score - 20);
-            snake.splice(-2, 2); // remove last 2 segments
+            snake.splice(-2, 2);
             if (snake.length < 1) {
                 gameOver();
                 return;
@@ -393,7 +387,6 @@ function moveSnake() {
             activePower = powers[Math.floor(Math.random() * powers.length)];
             applyPowerUp(activePower);
         }
-        // Update score immediately after changing it
         updateScore();
         placeFood();
         updateSpeed();
@@ -402,11 +395,21 @@ function moveSnake() {
         setTimeout(function () {
             cells[food.row][food.col].classList.remove("food-eaten");
         }, 200);
+        // Add head without popping tail (snake grows)
+        snake.unshift(head);
     }
     else {
+        // Normal movement - add head and pop tail
+        snake.unshift(head);
         snake.pop();
     }
-    // Keep this updateScore call for cases where score might change elsewhere
+    // Check for collision with self AFTER food logic
+    if (snake.slice(1).some(function (seg) { return seg.row === head.row && seg.col === head.col; })) {
+        if (activePower !== "invincible") {
+            gameOver();
+            return;
+        }
+    }
     updateScore();
     draw();
 }
@@ -437,7 +440,7 @@ function gameOver() {
         // Disable control buttons
         pauseBtn.disabled = true;
         resetBtn.disabled = false;
-    }, 500); // 500ms delay to show the animation
+    }, 500);
 }
 // Grow snake by N segments
 function growSnake(n) {
