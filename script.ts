@@ -12,6 +12,11 @@ const resetBtn: HTMLButtonElement = document.getElementById("reset-btn") as HTML
 const resumeBtn: HTMLButtonElement = document.getElementById("resume-btn") as HTMLButtonElement;
 const difficultySelect: HTMLSelectElement = document.getElementById("difficulty-select") as HTMLSelectElement;
 const mobileControls: HTMLElement = document.getElementById("mobile-controls") as HTMLElement;
+let lastMoveTime: number = 0;
+const minMoveInterval: number = 50; // milliseconds
+let powerUpEndTime: number = 0;
+const powerUpDuration: number = 8000;
+let highScore: number = 0;
 
 // Type definitions
 interface Position {
@@ -84,6 +89,25 @@ function createBoard(): void {
             board.appendChild(cell);
             cells[r][c] = cell;
         }
+    }
+}
+// Load high score on game start
+function loadHighScore(): void {
+    const saved = localStorage.getItem('snakeHighScore');
+    highScore = saved ? parseInt(saved) : 0;
+    updateHighScoreDisplay();
+}
+
+function updateHighScoreDisplay(): void {
+    const highScoreEl = document.getElementById("high-score")!;
+    highScoreEl.textContent = highScore.toString();
+}
+
+function saveHighScore(): void {
+    if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('snakeHighScore', highScore.toString());
+        updateHighScoreDisplay();
     }
 }
 
@@ -345,6 +369,9 @@ function restartInterval(): void {
 
 // Move snake
 function moveSnake(): void {
+     const now = Date.now();
+    if (now - lastMoveTime < minMoveInterval) return;
+    lastMoveTime = now;
     const head: Position = {row: snake[0].row + direction.row, col: snake[0].col + direction.col};
 
     // Wrap around edges
@@ -365,6 +392,11 @@ function moveSnake(): void {
 
   // Eat food
 if (head.row === food.row && head.col === food.col) {
+     if (foodType === "normal" || foodType === "golden") {
+        playSound("eat-sound");
+    } else if (foodType === "power") {
+        playSound("power-up-sound");
+    }
     if (foodType === "normal") {
         score += 10;
         growSnake(1 + Math.floor(Math.random() * 3)); // grow 1–3
@@ -406,18 +438,35 @@ draw();
 
 // Game over
 function gameOver(): void {
-    if (interval) clearInterval(interval);
-    gameStarted = false;
+    // Visual feedback before ending game
+    snake.forEach((seg, index) => {
+        const cell = cells[seg.row][seg.col];
+        if (index === 0) {
+            cell.classList.add("collision-effect");
+        } else {
+            cell.classList.add("snake-hit");
+        }
+    });
     
-    // Update final score
-    finalScoreEl.textContent = score.toString();
-    
-    // Show game over screen
-    gameOverScreen.classList.remove("hidden");
-    
-    // Disable control buttons
-    pauseBtn.disabled = true;
-    resetBtn.disabled = false;
+    // Delay the actual game over to show animations
+    setTimeout(() => {
+        if (interval) clearInterval(interval);
+        gameStarted = false;
+        
+        // Update final score
+        finalScoreEl.textContent = score.toString();
+        
+        // Save high score and play sound
+        saveHighScore();
+        playSound("game-over-sound");
+        
+        // Show game over screen
+        gameOverScreen.classList.remove("hidden");
+        
+        // Disable control buttons
+        pauseBtn.disabled = true;
+        resetBtn.disabled = false;
+    }, 500); // 500ms delay to show the animation
 }
 
 // Grow snake by N segments
@@ -430,20 +479,60 @@ function growSnake(n: number): void {
 // Power-up effects
 function applyPowerUp(type: Exclude<PowerType, null>): void {
     if (powerTimeout) clearTimeout(powerTimeout);
-
+    
+    activePower = type;
+    powerUpEndTime = Date.now() + powerUpDuration;
+    
+    // Show power-up indicator
+    const indicator = document.getElementById("power-up-indicator")!;
+    const powerText = document.getElementById("active-power-text")!;
+    
+    indicator.classList.remove("hidden", "invincible", "slow");
+    indicator.classList.add(type);
+    powerText.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+    
+    updatePowerUpDisplay();
+    
     if (type === "invincible") {
-        // temporarily ignore self-collisions
-        powerTimeout = setTimeout(() => activePower = null, 8000) as unknown as number;
+        powerTimeout = setTimeout(() => {
+            activePower = null;
+            indicator.classList.add("hidden");
+        }, powerUpDuration) as unknown as number;
     } else if (type === "slow") {
         if (interval) clearInterval(interval);
         interval = setInterval(moveSnake, speed * 1.5) as unknown as number;
         powerTimeout = setTimeout(() => {
             activePower = null;
+            indicator.classList.add("hidden");
             if (interval) clearInterval(interval);
             interval = setInterval(moveSnake, speed) as unknown as number;
-        }, 8000) as unknown as number;
+        }, powerUpDuration) as unknown as number;
+    }
+}
+function updatePowerUpDisplay(): void {
+    if (!activePower) return;
+    
+    const timeLeft = Math.max(0, powerUpEndTime - Date.now());
+    const secondsLeft = Math.ceil(timeLeft / 1000);
+    
+    const timerEl = document.getElementById("power-timer")!;
+    timerEl.textContent = `(${secondsLeft}s)`;
+    
+    if (timeLeft > 0) {
+        requestAnimationFrame(updatePowerUpDisplay);
+    }
+}
+// Sound functions
+function playSound(soundId: string): void {
+    const sound = document.getElementById(soundId) as HTMLAudioElement;
+    if (sound) {
+        sound.currentTime = 0;
+        sound.play().catch(e => console.log("Audio play failed:", e));
     }
 }
 
 // Initialize the game when the page loads
-window.addEventListener('load', initGame);
+window.addEventListener('load',  () => {
+    initGame();
+    loadHighScore(); 
+});

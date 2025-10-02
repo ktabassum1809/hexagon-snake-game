@@ -10,101 +10,130 @@
     <div class="container">
         <header>
             <h1>Snake Game</h1>
-            <div id="score">Score: 0 | Level: 1</div>
+            <div id="score">Score: 0 | Level: 1 | High Score: <span id="high-score">0</span></div>
+            <div id="power-up-indicator" class="hidden">
+                Active Power: <span id="active-power-text"></span> 
+                <span id="power-timer"></span>
+            </div>
         </header>
         
-        <main>
-            <div id="game-board-container">
-                <div id="game-board"></div>
-                <div id="start-screen" class="overlay">
-                    <div class="overlay-content">
-                        <h2>Snake Game</h2>
-                        <p>Use W, A, D, X keys to control the snake</p>
-                        <button id="start-btn" class="game-btn">Start Game</button>
+        <div class="game-layout">
+            <div class="game-area">
+                <main>
+                    <div id="game-board-container">
+                        <div id="game-board"></div>
+                        <div id="start-screen" class="overlay">
+                            <div class="overlay-content">
+                                <h2>Snake Game</h2>
+                                <p>Use W, A, D, X keys to control the snake</p>
+                                <button id="start-btn" class="game-btn">Start Game</button>
+                            </div>
+                        </div>
+                        <div id="game-over-screen" class="overlay hidden">
+                            <div class="overlay-content">
+                                <h2>Game Over</h2>
+                                <p>Your score: <span id="final-score">0</span></p>
+                                <button id="restart-btn" class="game-btn">Play Again</button>
+                            </div>
+                        </div>
+                        <div id="pause-screen" class="overlay hidden">
+                            <div class="overlay-content">
+                                <h2>Game Paused</h2>
+                                <button id="resume-btn" class="game-btn">Resume</button>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div id="game-over-screen" class="overlay hidden">
-                    <div class="overlay-content">
-                        <h2>Game Over</h2>
-                        <p>Your score: <span id="final-score">0</span></p>
-                        <button id="restart-btn" class="game-btn">Play Again</button>
-                    </div>
-                </div>
-                <div id="pause-screen" class="overlay hidden">
-                    <div class="overlay-content">
-                        <h2>Game Paused</h2>
-                        <button id="resume-btn" class="game-btn">Resume</button>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="controls">
-                <button id="pause-btn" class="control-btn" disabled>Pause</button>
-                <button id="reset-btn" class="control-btn" disabled>Reset</button>
-                <div class="difficulty">
-                    <label for="difficulty-select">Difficulty:</label>
-                    <select id="difficulty-select">
-                        <option value="easy">Easy</option>
-                        <option value="medium" selected>Medium</option>
-                        <option value="hard">Hard</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div id="mobile-controls" class="hidden">
-                <div class="mobile-control-row">
-                    <button id="up-btn" class="mobile-btn">↑</button>
-                </div>
-                <div class="mobile-control-row">
-                    <button id="left-btn" class="mobile-btn">←</button>
-                    <button id="right-btn" class="mobile-btn">→</button>
-                </div>
-                <div class="mobile-control-row">
-                    <button id="down-btn" class="mobile-btn">↓</button>
-                </div>
-            </div>
-        </main>
-        
-        <div id="game-info">
-            <h2>Game Rules & Controls</h2>
-            <div class="info-content">
-               <table>
-    <tr>
-        <th>Key</th>
-        <th>Direction</th>
-    </tr>
-    <tr>
-        <td>W</td>
-        <td>Up</td>
-    </tr>
-    <tr>
-        <td>A</td>
-        <td>Left</td>
-    </tr>
-    <tr>
-        <td>D</td>
-        <td>Right</td>
-    </tr>
-    <tr>
-        <td>X</td>
-        <td>Down</td>
-    </tr>
-</table>
-
-                
-                <div class="rules">
-                    <p><strong>Objective:</strong> Eat the food to grow the snake and earn points.</p>
-                    <p><strong>Game Over:</strong> Snake hits the wall or itself.</p>
-                    <p><strong>Levels:</strong> Speed increases as your score grows.</p>
                     
-                    <div class="mobile-controls-info hidden">
-                        <h3>Mobile Controls</h3>
-                        <p>Use the directional buttons below the game board to control the snake on mobile devices.</p>
+                    <div class="controls">
+                        <button id="pause-btn" class="control-btn" disabled>Pause</button>
+                        <button id="reset-btn" class="control-btn" disabled>Reset</button>
+                        <div class="difficulty">
+                            <label for="difficulty-select">Difficulty:</label>
+                            <select id="difficulty-select">
+                                <option value="easy">Easy</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="hard">Hard</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div id="mobile-controls" class="hidden">
+                        <div class="mobile-control-row">
+                            <button id="up-btn" class="mobile-btn">↑</button>
+                        </div>
+                        <div class="mobile-control-row">
+                            <button id="left-btn" class="mobile-btn">←</button>
+                            <button id="right-btn" class="mobile-btn">→</button>
+                        </div>
+                        <div class="mobile-control-row">
+                            <button id="down-btn" class="mobile-btn">↓</button>
+                        </div>
+                    </div>
+                </main>
+            </div>
+            
+            <div class="info-sidebar">
+                <div id="game-info">
+                    <h2>Game Rules & Controls</h2>
+                    <div class="info-content">
+                        <div class="control-cards">
+                            <div class="control-card">
+                                <h3>🎮 Controls</h3>
+                                <div class="control-item">
+                                    <span class="key">W / ↑</span>
+                                    <span class="action">Move Up</span>
+                                </div>
+                                <div class="control-item">
+                                    <span class="key">A / ←</span>
+                                    <span class="action">Move Left</span>
+                                </div>
+                                <div class="control-item">
+                                    <span class="key">D / →</span>
+                                    <span class="action">Move Right</span>
+                                </div>
+                                <div class="control-item">
+                                    <span class="key">X / ↓</span>
+                                    <span class="action">Move Down</span>
+                                </div>
+                                <div class="control-item">
+                                    <span class="key">P / Space</span>
+                                    <span class="action">Pause Game</span>
+                                </div>
+                            </div>
+                            
+                            <div class="rules-card">
+                                <h3>📋 How to Play</h3>
+                                <div class="rule-item">
+                                    <span class="emoji">🍎</span>
+                                    <span class="rule-text">Eat food to grow & score points</span>
+                                </div>
+                                <div class="rule-item">
+                                    <span class="emoji">⭐</span>
+                                    <span class="rule-text">Golden food = more points</span>
+                                </div>
+                                <div class="rule-item">
+                                    <span class="emoji">⚡</span>
+                                    <span class="rule-text">Power-ups = special abilities</span>
+                                </div>
+                                <div class="rule-item">
+                                    <span class="emoji">💀</span>
+                                    <span class="rule-text">Avoid hitting yourself</span>
+                                </div>
+                                <div class="rule-item">
+                                    <span class="emoji">🚀</span>
+                                    <span class="rule-text">Speed increases each level</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <audio id="eat-sound" src="sounds/eat.wav" preload="auto"></audio>
+    <audio id="game-over-sound" src="sounds/game-over.wav" preload="auto"></audio>
+    <audio id="power-up-sound" src="sounds/power-up.wav" preload="auto"></audio>
 
     <script src="script.js"></script>
 </body>

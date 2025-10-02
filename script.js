@@ -23,6 +23,11 @@ var resetBtn = document.getElementById("reset-btn");
 var resumeBtn = document.getElementById("resume-btn");
 var difficultySelect = document.getElementById("difficulty-select");
 var mobileControls = document.getElementById("mobile-controls");
+var lastMoveTime = 0;
+var minMoveInterval = 50; // milliseconds
+var powerUpEndTime = 0;
+var powerUpDuration = 8000;
+var highScore = 0;
 // Game constants and variables
 var rows = 10;
 var cols = 10;
@@ -69,6 +74,23 @@ function createBoard() {
             board.appendChild(cell);
             cells[r][c] = cell;
         }
+    }
+}
+// Load high score on game start
+function loadHighScore() {
+    var saved = localStorage.getItem('snakeHighScore');
+    highScore = saved ? parseInt(saved) : 0;
+    updateHighScoreDisplay();
+}
+function updateHighScoreDisplay() {
+    var highScoreEl = document.getElementById("high-score");
+    highScoreEl.textContent = highScore.toString();
+}
+function saveHighScore() {
+    if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('snakeHighScore', highScore.toString());
+        updateHighScoreDisplay();
     }
 }
 // Set up event listeners
@@ -320,6 +342,10 @@ function restartInterval() {
 }
 // Move snake
 function moveSnake() {
+    var now = Date.now();
+    if (now - lastMoveTime < minMoveInterval)
+        return;
+    lastMoveTime = now;
     var head = { row: snake[0].row + direction.row, col: snake[0].col + direction.col };
     // Wrap around edges
     if (head.row < 0)
@@ -340,6 +366,12 @@ function moveSnake() {
     snake.unshift(head);
     // Eat food
     if (head.row === food.row && head.col === food.col) {
+        if (foodType === "normal" || foodType === "golden") {
+            playSound("eat-sound");
+        }
+        else if (foodType === "power") {
+            playSound("power-up-sound");
+        }
         if (foodType === "normal") {
             score += 10;
             growSnake(1 + Math.floor(Math.random() * 3)); // grow 1–3
@@ -380,16 +412,32 @@ function moveSnake() {
 }
 // Game over
 function gameOver() {
-    if (interval)
-        clearInterval(interval);
-    gameStarted = false;
-    // Update final score
-    finalScoreEl.textContent = score.toString();
-    // Show game over screen
-    gameOverScreen.classList.remove("hidden");
-    // Disable control buttons
-    pauseBtn.disabled = true;
-    resetBtn.disabled = false;
+    // Visual feedback before ending game
+    snake.forEach(function (seg, index) {
+        var cell = cells[seg.row][seg.col];
+        if (index === 0) {
+            cell.classList.add("collision-effect");
+        }
+        else {
+            cell.classList.add("snake-hit");
+        }
+    });
+    // Delay the actual game over to show animations
+    setTimeout(function () {
+        if (interval)
+            clearInterval(interval);
+        gameStarted = false;
+        // Update final score
+        finalScoreEl.textContent = score.toString();
+        // Save high score and play sound
+        saveHighScore();
+        playSound("game-over-sound");
+        // Show game over screen
+        gameOverScreen.classList.remove("hidden");
+        // Disable control buttons
+        pauseBtn.disabled = true;
+        resetBtn.disabled = false;
+    }, 500); // 500ms delay to show the animation
 }
 // Grow snake by N segments
 function growSnake(n) {
@@ -401,9 +449,20 @@ function growSnake(n) {
 function applyPowerUp(type) {
     if (powerTimeout)
         clearTimeout(powerTimeout);
+    activePower = type;
+    powerUpEndTime = Date.now() + powerUpDuration;
+    // Show power-up indicator
+    var indicator = document.getElementById("power-up-indicator");
+    var powerText = document.getElementById("active-power-text");
+    indicator.classList.remove("hidden", "invincible", "slow");
+    indicator.classList.add(type);
+    powerText.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+    updatePowerUpDisplay();
     if (type === "invincible") {
-        // temporarily ignore self-collisions
-        powerTimeout = setTimeout(function () { return activePower = null; }, 8000);
+        powerTimeout = setTimeout(function () {
+            activePower = null;
+            indicator.classList.add("hidden");
+        }, powerUpDuration);
     }
     else if (type === "slow") {
         if (interval)
@@ -411,11 +470,34 @@ function applyPowerUp(type) {
         interval = setInterval(moveSnake, speed * 1.5);
         powerTimeout = setTimeout(function () {
             activePower = null;
+            indicator.classList.add("hidden");
             if (interval)
                 clearInterval(interval);
             interval = setInterval(moveSnake, speed);
-        }, 8000);
+        }, powerUpDuration);
+    }
+}
+function updatePowerUpDisplay() {
+    if (!activePower)
+        return;
+    var timeLeft = Math.max(0, powerUpEndTime - Date.now());
+    var secondsLeft = Math.ceil(timeLeft / 1000);
+    var timerEl = document.getElementById("power-timer");
+    timerEl.textContent = "(".concat(secondsLeft, "s)");
+    if (timeLeft > 0) {
+        requestAnimationFrame(updatePowerUpDisplay);
+    }
+}
+// Sound functions
+function playSound(soundId) {
+    var sound = document.getElementById(soundId);
+    if (sound) {
+        sound.currentTime = 0;
+        sound.play().catch(function (e) { return console.log("Audio play failed:", e); });
     }
 }
 // Initialize the game when the page loads
-window.addEventListener('load', initGame);
+window.addEventListener('load', function () {
+    initGame();
+    loadHighScore();
+});
